@@ -9,17 +9,17 @@ fan_geometry:
 
 su2:
   executable: C:/Users/Alvaro/Desktop/su2/SU2-v8.4.0-win64/win64/bin/SU2_CFD.exe
-  max_iter: 5000
-  convergence_residual: -8
-  turbulence_model: SA          # Spalart-Allmaras
-  cfl_number: 5.0
-  mesh_farfield_radius: 20      # multiples of chord
+  max_iter: 2000          # cold start; restart runs converge in ~400-600 iters
+  convergence_residual: -7
+  turbulence_model: SA    # Spalart-Allmaras
+  cfl_number: 5.0         # adaptive CFL enabled (ramps up to 100)
+  mesh_farfield_radius: 20
   mesh_airfoil_points: 300
   mesh_radial_layers: 100
   mesh_growth_rate: 1.15
   target_yplus: 1.0
-  timeout_seconds: 600
-  max_retries: 3
+  timeout_seconds: 300    # per AoA; 5 min is plenty with restart chaining
+  max_retries: 2
 
 reference_condition:
   mach: 0.3
@@ -52,7 +52,7 @@ flight_conditions:
 alpha_sweep_simulations:
   start: -5.0
   end: 20.0
-  step: 1.0
+  step: 2.0          # 2° step — 13 points per polar instead of 26
 
 airfoil_candidates:
   - naca_0012

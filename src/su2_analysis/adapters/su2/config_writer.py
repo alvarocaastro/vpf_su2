@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
+# Solution/restart use CSV format so restart chaining works without binary I/O
 _CFG_TEMPLATE = """\
 % ─────────────────────────────────────────────────────────────────
 %  SU2 Configuration – RANS Airfoil Polar (auto-generated)
@@ -13,6 +14,7 @@ SOLVER= RANS
 KIND_TURB_MODEL= {turb_model}
 MATH_PROBLEM= DIRECT
 RESTART_SOL= NO
+READ_BINARY_RESTART= NO
 
 % Compressible flow
 MACH_NUMBER= {mach}
@@ -37,16 +39,15 @@ MARKER_MONITORING= ( airfoil )
 % Numerical scheme
 NUM_METHOD_GRAD= GREEN_GAUSS
 CFL_NUMBER= {cfl}
-CFL_ADAPT= NO
+CFL_ADAPT= YES
+CFL_ADAPT_PARAM= ( 0.5, 1.5, 1.0, {cfl_max} )
 MAX_DELTA_TIME= 1E6
-RK_ALPHA_COEFF= ( 0.66667, 0.66667, 1.000000 )
 
 % Convective scheme
 CONV_NUM_METHOD_FLOW= ROE
 MUSCL_FLOW= YES
 SLOPE_LIMITER_FLOW= VENKATAKRISHNAN
 VENKAT_LIMITER_COEFF= 0.05
-JST_SENSOR_COEFF= ( 0.5, 0.02 )
 
 % Viscous scheme
 CONV_NUM_METHOD_TURB= SCALAR_UPWIND
@@ -65,9 +66,9 @@ OUTPUT_WRT_FREQ= {max_iter}
 % Input / output
 MESH_FILENAME= {mesh_file}
 MESH_FORMAT= SU2
-SOLUTION_FILENAME= solution_flow.dat
-RESTART_FILENAME= restart_flow.dat
-OUTPUT_FILES= ( RESTART, CSV )
+SOLUTION_FILENAME= solution_flow
+RESTART_FILENAME= restart_flow
+OUTPUT_FILES= ( RESTART_ASCII, CSV )
 VOLUME_FILENAME= volume_flow
 SURFACE_FILENAME= surface_flow
 HISTORY_OUTPUT= ( ITER, RMS_RHO, RMS_RHO_E, LIFT, DRAG, MOMENT_Z )
@@ -84,8 +85,8 @@ def write_su2_config(
     reynolds: float,
     chord: float,
     T_inf: float,
-    max_iter: int = 5000,
-    conv_residual: float = -8.0,
+    max_iter: int = 2000,
+    conv_residual: float = -7.0,
     cfl: float = 5.0,
     turb_model: str = "SA",
 ) -> Path:
@@ -93,13 +94,16 @@ def write_su2_config(
 
     Parameters
     ----------
-    output_path : destination .cfg file
-    mesh_file   : absolute path to the .su2 mesh
-    mach        : freestream Mach number
-    aoa         : angle of attack [degrees]
-    reynolds    : chord-based Reynolds number
-    chord       : reference chord [m]
-    T_inf       : freestream static temperature [K]
+    output_path   : destination .cfg file
+    mesh_file     : absolute path to the .su2 mesh
+    mach          : freestream Mach number
+    aoa           : angle of attack [degrees]
+    reynolds      : chord-based Reynolds number
+    chord         : reference chord [m]
+    T_inf         : freestream static temperature [K]
+    max_iter      : max solver iterations (use ~2000 cold, ~800 restart)
+    conv_residual : log10 residual drop target
+    cfl           : initial CFL number (adaptive CFL is enabled)
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
     content = _CFG_TEMPLATE.format(
@@ -110,6 +114,7 @@ def write_su2_config(
         reynolds=reynolds,
         chord=chord,
         cfl=cfl,
+        cfl_max=cfl * 20,
         conv_residual=conv_residual,
         max_iter=max_iter,
         mesh_file=str(mesh_file).replace("\\", "/"),
