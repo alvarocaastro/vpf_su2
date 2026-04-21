@@ -55,10 +55,12 @@ alpha_sweep_simulations:
   step: 1.0          # 1° step — 26 points per polar
 
 airfoil_candidates:
-  - naca_0012
-  - naca_63-215
   - naca_65-210
+  - naca_65-310
   - naca_65-410
+  - naca_65-212
+  - naca_65-312
+  - naca_65-412
 
 atmosphere:
   sea_level_temperature: 288.15   # K
